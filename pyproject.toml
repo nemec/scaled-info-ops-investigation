@@ -1,0 +1,30 @@
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+packages = ["data_pipeline"]
+
+[project]
+name = "data_pipeline"
+version = "0.0.1"
+requires-python = ">=3.11"
+dependencies = [
+    "boto3",
+    "langdetect",
+    "rich",
+    "tqdm",
+    "yt-dlp",
+]
+
+[project.optional-dependencies]
+dev = [
+    "build",
+    #"huggingface_hub[cli]",
+]
+whisper = [
+    "openai-whisper",
+]
+
+[project.scripts]
+data-pipeline = "data_pipeline.__main__:main"
