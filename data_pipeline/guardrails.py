@@ -11,6 +11,10 @@ class InvalidLlmResponseException(Exception):
     pass
 
 
+class NotTranslatedLlmResponseException(InvalidLlmResponseException):
+    pass
+
+
 class InputGuardrail(ABC):
     @abstractmethod
     def evaluate(self, llm_input: str):
@@ -32,9 +36,8 @@ class SufficientTextGuardrail(InputGuardrail):
 class TranslatedGuardrail(OutputGuardrail):
     def evaluate(self, llm_response: str):
         lang = langdetect.detect(llm_response)
-        # Yes, lots of non-English languages use ascii-compatible letters. This is just a quick check.
         if not llm_response.isascii() and lang != 'en':
-            raise InvalidLlmResponseException(
+            raise NotTranslatedLlmResponseException(
                 f"Language of LLM response contains non-ascii letters, detected language: {lang}")
 
 

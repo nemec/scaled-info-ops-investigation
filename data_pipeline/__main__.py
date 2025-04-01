@@ -4,7 +4,7 @@ import pathlib
 
 import rich.logging
 
-from .commands import download_channels, generate_topics, extract_urls
+from .commands import download_channels, generate_topics, extract_urls, export_stats
 
 try:
     from .commands.audio_transcriber import transcribe_audio
@@ -60,6 +60,9 @@ def main():
     sp.add_parser('extract-urls', parents=[base_parser],
                   help="Extract unique URLs from Youtube video descriptions")
 
+    sp.add_parser('export-video-stats', parents=[base_parser],
+                  help="Export statistics on the collected videos")
+
     if supports_transcription:
         sp.add_parser('transcribe-audio', parents=[base_parser],
                       help="Transcribe audio from already downloaded Youtube channel audio")
@@ -68,11 +71,13 @@ def main():
     args: Args = parser.parse_args()
 
     logging.basicConfig(
-        level=logging.DEBUG if args.debug else logging.INFO,
+        level=logging.INFO,
         format="%(message)s",
         datefmt="[%X]",
         handlers=[rich.logging.RichHandler(markup=True)]
     )
+    if args.debug:
+        logging.getLogger("data_pipeline").setLevel(logging.DEBUG)
 
     if not args.data_dir.exists():
         args.data_dir.mkdir()
@@ -88,3 +93,5 @@ def main():
         transcribe_audio(args)
     elif args.command == 'extract-urls':
         extract_urls(args)
+    elif args.command == 'export-video-stats':
+        export_stats(args)

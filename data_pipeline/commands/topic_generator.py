@@ -17,6 +17,7 @@ from ..guardrails import (
     OutputFormatCheckerGuardrail,
     InvalidLlmInputException,
     InvalidLlmResponseException,
+    NotTranslatedLlmResponseException,
 )
 from ..models import TopicGenerationArgs
 from ..utils import pre_process_description, post_process_topic
@@ -108,7 +109,7 @@ def generate_topics(args: TopicGenerationArgs):
                 ]
                 content: str | None = None
                 response = None
-                tries = 3
+                tries = 2
                 while response is None and tries > 0:
                     try:
                         response = client.converse(
@@ -122,12 +123,30 @@ def generate_topics(args: TopicGenerationArgs):
                             },
                         )
                         pending_content: str = response['output']['message']['content'][0]['text']
+                        logger.debug(f"Response before processing guardrails: {pending_content}")
                         for guardrail in output_guardrails:
                             guardrail.evaluate(pending_content)
                         content = pending_content
                     except botocore.exceptions.ClientError as e:
                         response = None
                         logger.info(f"caught exception {e.__class__.__name__}, retrying...")
+                        time.sleep(1)
+                        tries -= 1
+                    except NotTranslatedLlmResponseException:
+                        response = None
+                        logger.warning("Received a non-English response. Attempting to redirect...")
+                        # Continue the conversation and add a request to LLM to fix the previous response
+                        conversation.extend([
+                            {
+                                "role": "assistant",
+                                "content": [{"text": pending_content}],
+                            },
+                            {
+                                "role": "user",
+                                "content": [{"text": "The previous response was not translated into English. "
+                                                     "Please only give English topics."}],
+                            }
+                        ])
                         time.sleep(1)
                         tries -= 1
                     except InvalidLlmResponseException as e:
